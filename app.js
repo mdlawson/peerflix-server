@@ -4,13 +4,20 @@ var logger = require('morgan');
 var bodyParser = require('body-parser');
 
 var app = express();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
+
+var torrentHandler = require("./");
+
+
+io.on('connection', torrentHandler.socketConnection);
 
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded());
 
-app.use(require("./"));
+app.use(torrentHandler);
 
-app.listen(3000, function() {
+server.listen(3000, function() {
     console.log("Server listening");
 });

@@ -16,14 +16,38 @@ var opts = {
 var processTorrent = function(req, res) {
 
   var url = req.param("url");
-  var magnet = request.param("magnet");
+  var magnet = req.param("magnet");
+
+  var sendInfo = function(engine) {
+
+    var torrent = engine.torrent;
+    
+    torrent.url = req.path + torrent.infoHash;
+    
+    for (var i = 0; i < torrent.files.length; i++) {
+      torrent.files[i].url = torrent.url + "/" + i;
+    }
+
+    res.send({
+      name: torrent.name,
+      length: torrent.length,
+      infoHash: torrent.infoHash,
+      files: torrent.files,
+      socket_room: "torrent-" + torrent.infoHash,
+      url: torrent.url
+    });
+  };
 
   var done = function(err, torrent) {
     try {
       var engine = torrentStream(torrent, opts);
-      res.redirect(engine.infoHash);
+      if (engine.torrent) {
+        sendInfo(engine.torrent);
+      } else {
+        engine.on("ready", function() { sendInfo(engine); });
+      }
     } catch (e) {
-      res.send(501);
+      res.send(404);
     }
   };
 
@@ -92,5 +116,9 @@ stream.route("/:infoHash/:index?")
 
     stream.pipe(res);
   });
+
+stream.socketConnection = function(socket) {
+  socket.emit("hi!");
+};
 
 module.exports = stream;
